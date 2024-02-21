@@ -1,7 +1,7 @@
 import pandas as pd
 import PIL
 from PIL import Image
-from PIL import ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont, ImageFilter
 import easyocr
 import cv2
 from googletrans import Translator
@@ -15,13 +15,14 @@ def thresholding(image):
     return cv2.threshold(image, 160, 255, cv2.THRESH_BINARY)[1]
 
 def sharpen(image):
-    kernel = np.array([[0, -1, 0], [-1, 7, -1], [0, -1, 0]]) 
-    return cv2.filter2D(image, -1, kernel)
+    #kernel = np.array([[-2, -2, -2], [-2, 32, -2], [-2, -2, -2]]) 
+    #return cv2.filter2D(image, -1, kernel)
+    return np.array(Image.fromarray(image).filter(ImageFilter.EDGE_ENHANCE_MORE))
 
 def blur(image):
     return cv2.GaussianBlur(image, (7, 7), 0) 
 
-def contrast(image,brightness = 3, contrast=3):
+def contrast(image,brightness = 0, contrast=5):
     return (cv2.addWeighted(image, contrast, np.zeros(image.shape, image.dtype), 0, brightness))
 
 def equalhist(image):
@@ -79,7 +80,7 @@ def text_wrap(text, max_width):
 def draw_text(img, text, x, y, x_max, y_max):    
     
     # size() returns a tuple of (width, height)
-    image_size = (y_max - y)/2 if y_max - y > 200 else y_max - y
+    image_size = (y_max - y)/2 if y_max - y > 260 else y_max - y
     line_height = gettxtsize(text)[1] + 10
     # create the ImageFont instance
     #textSize = cv2.getTextSize(text=text, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, thickness=1)
@@ -104,7 +105,7 @@ def draw_text(img, text, x, y, x_max, y_max):
     return img
 
 
-img = cv2.imread(r"C:\Users\ACER\Pictures\Doujinshi\Ganqing fanbook\_02.jpg",0)
+img = cv2.imread(r"C:\Users\ACER\Pictures\Doujinshi\Ganqing fanbook\_10.jpg",0)
 reader = easyocr.Reader(['ch_sim'], gpu=False)
 bounds = reader.detect(img)
 #im = PIL.Image.open(r"C:\Users\ACER\Pictures\Doujinshi\Ganqing fanbook\_01.jpg")
@@ -129,14 +130,20 @@ for i in bounds[0][0]:
 bboxes=list(set(tuple(element) for element in bboxes))
 for bbox in bboxes:
     for temp_bbox in bboxes:
-        if(bb_intersection_over_union(bbox, temp_bbox)[0] > 1.0):
-            bboxes.remove(temp_bbox)
+        print(bb_intersection_over_union(bbox, temp_bbox))
+        if(bb_intersection_over_union(bbox, temp_bbox)[0]>=0.8):
+            if(bbox[0] != temp_bbox[0] or bbox[1] != temp_bbox[1] or bbox[2] != temp_bbox[2] or bbox[3] != temp_bbox[3]):
+                if ((bbox[0] - bbox[1] ) * (bbox[2] - bbox[3])>=(temp_bbox[0] - temp_bbox[1]) * (temp_bbox[2] - temp_bbox[3])):
+                    bboxes.remove(temp_bbox)
+                else:
+                    bboxes.remove(bbox)
+    print("__________________________")
 
 for j in bboxes:
     try:
-        temp_img = sharpen(thresholding(blur(img[j[2]:j[3], j[0]:j[1]])))
+        temp_img = sharpen(thresholding(sharpen(thresholding(blur((img[j[2]:j[3], j[0]:j[1]]))))))
         translation = translator.translate(pytesseract.image_to_string(temp_img, lang = "chi_sim_vert+chi_sim").replace(" ", "").replace("\n", ""))
-        #print(f"{translation.origin} ({translation.src}) --> {translation.text} ({translation.dest})")
+        print(f"{translation.origin} ({translation.src}) --> {translation.text} ({translation.dest})")
         img = draw_text(img, translation.text, j[0],j[2],j[1],j[3])
         #cv2.imshow("Image", temp_img)
     
