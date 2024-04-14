@@ -9,6 +9,18 @@ import easyocr
 from PIL import ImageFont
 import cv2
 import uuid
+import sys
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 #----------------------------------------------------------------------
 
 class MainWindow():
@@ -18,9 +30,9 @@ class MainWindow():
     def __init__(self, main):
         # Temp var
         self.find_text_model = easyocr.Reader(['ja'], gpu=False)
-        self.read_text_model = translate_from_dir.init_model()
+        self.read_text_model = translate_from_dir.init_model(pretrained_model = resource_path('lib/manga_ocr/manga-ocr-base'),gpu = False)
         self.main = main
-        self.font_path = r"font\Roboto\Roboto-Regular.ttf"
+        self.font_path = resource_path(r"font\Roboto\Roboto-Regular.ttf")
         self.font_size = 30
         self.font = ImageFont.truetype(self.font_path,self.font_size)
         self.temp_pixel = PhotoImage(width=1, height=1)
@@ -28,7 +40,7 @@ class MainWindow():
         self.list_result_image = []
         self.preview_image_number = 0
         self.result_image_number = 0
-        self.not_found_img = Image.open(r"assets\not_found_img (1).jpg")
+        self.not_found_img = Image.open(resource_path(r"assets\not_found_img (1).jpg"))
         self.not_found_img.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
         self.not_found_img = ImageTk.PhotoImage(self.not_found_img)
         self.save_dir = "None"
@@ -89,10 +101,10 @@ class MainWindow():
         self.result_canvas.place(x=640, y=20)
         
         # Start_images
-        self.img_preview = Image.open(r"assets\start_img.jpg")
+        self.img_preview = Image.open(resource_path(r"assets\start_img.jpg"))
         self.img_preview.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
         self.img_preview = ImageTk.PhotoImage(self.img_preview)
-        self.img_result = Image.open(r"assets\start_img (1).jpg")
+        self.img_result = Image.open(resource_path(r"assets\start_img (1).jpg"))
         self.img_result.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
         self.img_result = ImageTk.PhotoImage(self.img_result)
         
@@ -290,7 +302,7 @@ if __name__ == '__main__':
     r.title('Phần mềm dịch truyện được viết bằng Python')
     r.config(bg='white')
     r.geometry('1080x900')
-    photo = PhotoImage(file = 'assets\logo.png')
+    photo = PhotoImage(file = resource_path(r'assets\logo.png'))
     r.wm_iconphoto(False, photo)
     MainWindow(r)
     r.mainloop()

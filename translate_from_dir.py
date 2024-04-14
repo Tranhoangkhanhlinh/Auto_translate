@@ -79,7 +79,7 @@ def draw_text(img,font, text, x, y, x_max, y_max):
 def translate_img(model, img):
     return model(Image.fromarray(img))
 
-def init_model(pretrained_model = 'lib\manga_ocr\manga-ocr-base', gpu = False):
+def init_model(pretrained_model, gpu = False):
     return MangaOcr(pretrained_model, gpu)
 
 def get_bboxes(image, model, bbox_min_score = 0.01):
