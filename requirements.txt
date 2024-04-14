@@ -1,0 +1,16 @@
+deep_translator==1.11.4
+easyocr==1.7.1
+fire==0.5.0
+jaconv==0.3.4
+loguru==0.7.2
+numpy==1.23.1
+numpy==1.23.4
+numpy==1.25.2
+opencv_contrib_python==4.8.0.76
+opencv_python==4.9.0.80
+Pillow==10.0.1
+Pillow==9.4.0
+Pillow==10.3.0
+pyperclip==1.8.2
+torch==2.2.0
+transformers==4.39.1
