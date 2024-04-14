@@ -38,7 +38,7 @@ python translate_GUI.py để chạy chương trình
 ```
    
       
-Hướng dẫn chạy chương trình ở những lần tiếp theo (Sau khi đã cài đặt lần đầu và chạy thành công)
+## Hướng dẫn chạy chương trình ở những lần tiếp theo (Sau khi đã cài đặt lần đầu và chạy thành công)   
 **Bước 1**: Chạy Miniconda   
 **Bước 2**: Khởi chạy môi trường ảo bằng lệnh
 ```sh
