@@ -29,7 +29,8 @@ class MainWindow():
     
     def __init__(self, main):
         # Temp var
-        self.find_text_model = easyocr.Reader(['ja'], gpu=False)
+        self.find_text_model_jp = easyocr.Reader(['ja'], gpu=False)
+        self.find_text_model_kr = easyocr.Reader(['ko'], gpu=False)
         self.read_text_model = translate_from_dir.init_model(pretrained_model = resource_path('lib/manga_ocr/manga-ocr-base'),gpu = False)
         # self.find_text_model = ""
         # self.read_text_model =""
@@ -300,7 +301,7 @@ class MainWindow():
                 progress_var.set(k)
                 current_progress.configure(text=str(k)+"/"+str(len(self.list_preview_image)))
                 top_lv.update()
-                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model,0.01)))
+                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_jp,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01)))
                 # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
                 k += 1
             top_lv.destroy()

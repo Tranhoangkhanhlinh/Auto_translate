@@ -50,11 +50,11 @@ def text_wrap(text, font, max_width):
     if gettxtsize(text, font)[0] <= max_width:
         lines.append(text) 
     else:
-        words = re.split(r'\W+', text)
+        words = re.split(r'(\W+)', text)
         i = 0
         while i < len(words):
             line = ''         
-            while i < len(words) and gettxtsize(line + words[i] + " ", font)[0] <= max_width:                
+            while i < len(words) and gettxtsize(line + words[i] + " ", font)[0] <= max_width:   
                 line = line + words[i] + " "
                 i += 1
             if not line:
@@ -79,8 +79,17 @@ def draw_text(img,font, text, x, y, x_max, y_max):
 def translate_img(model, img):
     return model(Image.fromarray(img))
 
+def translate_img_kr(reader_kr, img):
+    list_of_text = []
+    for translated_text in reader_kr.readtext(img):
+        list_of_text.append(translated_text[1])
+    return ''.join(x for x in list_of_text)
+
 def init_model(pretrained_model, gpu = False):
     return MangaOcr(pretrained_model, gpu)
+
+def regconize_text_lang(reader_jp, reader_kr, img):
+    return reader_jp.readtext(img)[0][2] > reader_kr.readtext(img)[0][2]
 
 def get_bboxes(image, model, bbox_min_score = 0.01):
     bboxes = []
@@ -125,11 +134,14 @@ def translate_and_add_text_image(model,img, font, bboxes):
             print(e)
     return img
 
-def get_translate_data(model, img,font, bboxes):
+def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes):
     data = []
     for j in bboxes:
         try:
-            get_text = (translate_img(model, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
+            if(regconize_text_lang(reader_jp,reader_kr,((preprocess((img[j[2]:j[3], j[0]:j[1]])))))):
+                get_text = (translate_img(model, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
+            else:
+                get_text = (translate_img_kr(reader_kr, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
             if get_text:
                 translation = GoogleTranslator(source='auto', target='en').translate(get_text)
                 if translation:
