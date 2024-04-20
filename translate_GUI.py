@@ -528,13 +528,15 @@ class Modify_translated_text(Frame):
         self.original_txt_en.insert(END, self.original_text)
         self.original_txt_en.bind('<KeyRelease>', self.on_update_original_text)
         self.original_txt_lb.grid(row=3, sticky='w')
-        self.original_txt_en.grid(row=4, sticky='w')
+        self.original_txt_en.grid(row=4, sticky='w', columnspan=2)
         self.translated_txt_lb = Label(self.center, text='Văn bản sau khi dịch:', justify=LEFT)
         self.translated_txt_en = Text(self.center, width=39, height = 5)
         self.translated_txt_en.insert(END, self.translated_text)
         self.translated_txt_en.bind('<KeyRelease>', self.on_update_translated_text)
-        self.translated_txt_lb.grid(row=5,sticky='w')
-        self.translated_txt_en.grid(row=6,sticky='w')
+        self.translated_txt_lb.grid(row=5,sticky='w', column=0)
+        self.translated_txt_en.grid(row=6,sticky='w',columnspan=2)
+        self.translate_btn = Button(self.center, text="Dịch lại", command=self.translate_from_original_text)
+        self.translate_btn.grid(row=5, column=1, sticky='e')
 
         self.font_size_lb = Label(self.bottom_frame, text='Font size:', width=10)
         self.font_size_en = Entry(self.bottom_frame,textvariable= self.temp_font_size, width=10)
@@ -567,6 +569,19 @@ class Modify_translated_text(Frame):
     def delete_translated_box(self):
         if tkinter.messagebox.askquestion("Xóa bản dịch?", "Bạn có chắc chắn rằng muốn xóa bản dịch này?") == 'yes':
             self.destroy()
+
+    def translate_from_original_text(self):
+        try:
+            if(self.original_text == ""):
+                tkinter.messagebox.showinfo("Văn bản cần dịch trống",  "Không tìm thấy văn bản cần dịch")
+            else:
+                self.translated_text = translate_from_dir.translate_text(self.original_text,'en')
+                self.translated_txt_en.delete('1.0', END)
+                self.translated_txt_en.insert(END, self.translated_text)
+        except Exception as e:
+            tkinter.messagebox.showinfo("Không thể dịch được văn bản",  "HÌnh như đã có lỗi trong quá trình dịch, phiền bạn kiểm tra lại kết nối Internet và tiến hành chạy lại chương trình")
+
+            
     
     def on_update_font_size(self, var, index, mode):
         self.font_size = self.font_size_en.get()

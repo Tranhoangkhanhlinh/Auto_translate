@@ -119,6 +119,9 @@ def get_bboxes(image, model, bbox_min_score = 0.01):
                     bboxes.remove(bbox)
     return bboxes
 
+def translate_text(text, lang='en'):
+    return GoogleTranslator(source='auto', target=lang).translate(text)
+
 def translate_and_add_text_image(model,img, font, bboxes):
     for j in bboxes:
         try:
@@ -126,7 +129,7 @@ def translate_and_add_text_image(model,img, font, bboxes):
             #translation = translator.translate(pytesseract.image_to_string(preprocess(sharpen(((img[j[2]:j[3], j[0]:j[1]])))), lang = "chi_sim_vert+chi_sim").replace(" ", "").replace("\n", ""))
             get_text = (translate_img(model, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
             if get_text:
-                translation = GoogleTranslator(source='auto', target='en').translate(get_text)
+                translation = translate_text(get_text,'en')
                 if translation:
                     print(get_text + " --> "+ translation)
                     img = draw_text(img,font, translation, j[0],j[2],j[1],j[3])
