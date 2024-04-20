@@ -125,6 +125,21 @@ def translate_and_add_text_image(model,img, font, bboxes):
             print(e)
     return img
 
+def get_translate_data(model, img,font, bboxes):
+    data = []
+    for j in bboxes:
+        try:
+            get_text = (translate_img(model, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
+            if get_text:
+                translation = GoogleTranslator(source='auto', target='en').translate(get_text)
+                if translation:
+                    print(get_text + " --> "+ translation)
+                    img = draw_text(img,font, translation, j[0],j[2],j[1],j[3])
+                    data.append([j[0],j[2],j[1],j[3],get_text,translation])
+        except Exception as e:
+            print(e)
+    return [img,data]
+
 def load_images_from_folder(folder):
     file_info = []
     for filename in os.listdir(folder):

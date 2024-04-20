@@ -31,6 +31,8 @@ class MainWindow():
         # Temp var
         self.find_text_model = easyocr.Reader(['ja'], gpu=False)
         self.read_text_model = translate_from_dir.init_model(pretrained_model = resource_path('lib/manga_ocr/manga-ocr-base'),gpu = False)
+        # self.find_text_model = ""
+        # self.read_text_model =""
         self.main = main
         self.font_path = resource_path(r"font\Roboto\Roboto-Regular.ttf")
         self.font_size = 30
@@ -57,7 +59,7 @@ class MainWindow():
         self.save_dir_btn.place( x = 10, y = 100)
         # Run OCR on selected
         self.run_btn = Button(main, text='Run model', image=self.temp_pixel, compound='c', width=100, height=20, command=self.run_model)
-        self.run_btn.place(x=50, relx=0.5, rely=0.5, anchor=CENTER)
+        self.run_btn.place(x=590, rely=0.5, anchor=CENTER)
         # next image on preview
         self.next_preview_image_btn = Button(main, text='Next image', image=self.temp_pixel, compound='c', state=DISABLED, width=100, height=20, command=self.next_preview_image)
         self.next_preview_image_btn.place(x=440, y = 720)
@@ -73,6 +75,12 @@ class MainWindow():
         # Pick font button
         self.pick_font_btn = Button(main, text='Pick my font', image=self.temp_pixel, compound='c', width=100, height=20, command=self.get_font_path)
         self.pick_font_btn.place(x=10, y = 320)
+        # Add translated_text_frame
+        self.add_translated_frame_btn = Button(main, text='Thêm bản dịch', image=self.temp_pixel, compound='c', width=100, height=20,state=DISABLED, command=self.add_translated_frame)
+        self.add_translated_frame_btn.place(x=1310, y = 720)
+        # Add translated_text_frame
+        self.update_translated_btn = Button(main, text='Cập nhật bản dịch', image=self.temp_pixel, compound='c', width=100, height=20,state=DISABLED, command=self.return_update_translated_image)
+        self.update_translated_btn.place(x=1060, y = 720)
 
         # LABEL
         self.save_dir_lb = Label(main, text = self.save_dir, wraplength=100)
@@ -93,12 +101,56 @@ class MainWindow():
         self.default_font_size = IntVar(value=30)
         self.font_size_en = Entry(main, textvariable = self.default_font_size, font=('Arial',10))
         self.font_size_en.place(x = 10, y=280)
+        self.default_font_size.trace_add('write', self.on_update_global_font_size)
 
         # CANVAS
         self.preview_canvas = Canvas(main, width = 400,  height = 680)
         self.preview_canvas.place(x=140, y=20) 
         self.result_canvas = Canvas(main, width = 400,  height = 680)
         self.result_canvas.place(x=640, y=20)
+
+        # FRAMES
+        self.main_translated_frame = Frame(main,width=360, height=680, background="bisque")
+        self.main_translated_frame.grid(sticky='nw')
+        self.main_translated_frame.place(x=1060, y = 20)
+        self.main_translated_frame.grid_propagate(False)
+
+        # Create a frame for the canvas with non-zero row&column weights
+        self.frame_canvas = Frame(self.main_translated_frame)
+        self.frame_canvas.grid(row=1, column=0, sticky='nw')
+        self.frame_canvas.grid_rowconfigure(0, weight=1)
+        self.frame_canvas.grid_columnconfigure(0, weight=1)
+        self.frame_canvas.grid_propagate(False)
+
+        # Add a canvas in that frame
+        self.translated_canvas = Canvas(self.frame_canvas)
+        self.translated_canvas.grid(row=0, column=0, sticky="ns")
+
+        # Link a scrollbar to the canvas
+        vsb = Scrollbar(self.frame_canvas, orient="vertical", command=self.translated_canvas.yview)
+        vsb.grid(row=0, column=1, sticky='ns')
+        self.translated_canvas.configure(yscrollcommand=vsb.set)
+
+        self.translated_frame = Frame(self.translated_canvas,width=360, height=680)
+        self.translated_canvas.create_window((0, 0), window=self.translated_frame, anchor='nw')
+        rows = 0
+        self.list_translated_frame = []
+        # for i in range(0, rows):
+        #         self.list_translated_frame.append(Modify_translated_text(self.translated_frame,uuid.uuid4().hex, 0,0,0,0, 'Roboto', 30, "a", "b"))
+        #         self.list_translated_frame[-1].grid(row=i,column=1, pady=10)
+        #         self.list_translated_frame[-1].config(highlightthickness=1,highlightbackground="blue")
+
+        # Update buttons frames idle tasks to let tkinter calculate buttons sizes
+
+        # Resize the canvas frame to show exactly 5-by-5 buttons and the scrollbar
+        # first5columns_width = sum([buttons[0][j].winfo_width() for j in range(0, 5)])
+        # first5rows_height = sum([buttons[i][0].winfo_height() for i in range(0, 5)])
+        # self.frame_canvas.config(width=first5columns_width + vsb.winfo_width(),
+        #                     height=first5rows_height)
+        self.frame_canvas.config(width=360, height=680)
+
+        # Set the canvas scrolling region
+        self.translated_canvas.config(scrollregion=self.translated_canvas.bbox("all"))
         
         # Start_images
         self.img_preview = Image.open(resource_path(r"assets\start_img.jpg"))
@@ -115,6 +167,11 @@ class MainWindow():
 
         self.original_img_lb.lift(self.preview_canvas)
         self.translated_img_lb.lift(self.result_canvas)
+
+    # defining the callback function (observer)
+    def on_update_global_font_size(self, var, index, mode):
+        self.font_size = self.font_size_en.get()
+        # print ("Traced variable {}".format(self.font_size_en.get()))
 
     #----------------
 
@@ -136,6 +193,9 @@ class MainWindow():
         file = fd.askopenfilename(filetypes=filetypes) 
         # change image
         if file is not None and file!='':
+            self.clear_translated_frame(self.translated_frame)
+            self.add_translated_frame_btn.config(state=DISABLED)
+            self.update_translated_btn.config(state=DISABLED)
             self.preview_image_number = 0
             self.result_image_number = 0
             self.list_preview_image.clear()
@@ -158,6 +218,9 @@ class MainWindow():
         folder_path = fd.askdirectory() 
         # change image
         if folder_path is not None and folder_path != '':
+            self.clear_translated_frame(self.translated_frame)
+            self.add_translated_frame_btn.config(state=DISABLED)
+            self.update_translated_btn.config(state=DISABLED)
             valid_images = [".jpg",".jpeg",".png"]
             self.list_preview_image.clear()
             self.list_result_image.clear()
@@ -227,28 +290,43 @@ class MainWindow():
             progressbar.pack(fill=X, expand=1)
             k = 0
             if(self.font_size_en.get() != ''):
-                print(self.font_size_en.get())
                 self.font_size = int(self.font_size_en.get())
             else:
                 self.font_size = 30
             self.font = ImageFont.truetype(self.font_path, self.font_size)
+            self.clear_translated_frame(self.translated_frame)
+            self.list_result_image.clear()
             for img in self.list_preview_image:
-                print(k)
                 progress_var.set(k)
                 current_progress.configure(text=str(k)+"/"+str(len(self.list_preview_image)))
                 top_lv.update()
-                self.list_result_image.append(translate_from_dir.translate_and_add_text_image(self.read_text_model, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model,0.01)))
+                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model,0.01)))
+                # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
                 k += 1
             top_lv.destroy()
             self.run_btn.configure(state=NORMAL)
             self.save_dir_btn.configure(state=NORMAL)
             
-            
-            self.img_result = Image.fromarray(self.list_result_image[0])
+            self.result_image_number = 0
+            self.img_result = Image.fromarray(self.list_result_image[self.result_image_number][0])
             self.img_result.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
             self.img_result = ImageTk.PhotoImage(self.img_result) 
             self.result_canvas.itemconfig(self.on_result_canvas, image=self.img_result)
             self.prev_result_image_btn.configure(state=DISABLED)
+            for data in self.list_result_image[self.result_image_number][1]:
+                temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], self.font_path, self.font_size, data[4],data[5])
+                temp.pack(pady=10)
+                temp.config(highlightthickness=1,highlightbackground="blue")
+                self.list_translated_frame.append(temp)
+                self.translated_frame.update_idletasks()
+                if(len(self.list_translated_frame) > 0 and sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))]) < 680):
+                    frame_canvas_height = sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))])
+                else:
+                    frame_canvas_height = 680
+                self.frame_canvas.config(width=360, height=frame_canvas_height)
+                self.translated_canvas.config(scrollregion=self.translated_canvas.bbox("all"))
+            self.add_translated_frame_btn.config(state=NORMAL)
+            self.update_translated_btn.config(state=NORMAL)
         if len(self.list_preview_image) <= 1:
             self.next_result_image_btn.configure(state=DISABLED)
         else:
@@ -261,12 +339,28 @@ class MainWindow():
         self.result_image_number += 1 
         if self.result_image_number <= (len(self.list_result_image)-1):
             self.prev_result_image_btn.configure(state=NORMAL)
-            self.img_result = Image.fromarray(self.list_result_image[self.result_image_number])
+            self.img_result = Image.fromarray(self.list_result_image[self.result_image_number][0])
             self.img_result.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
             self.img_result = ImageTk.PhotoImage(self.img_result) 
             self.result_canvas.itemconfig(self.on_result_canvas, image=self.img_result)
         if self.result_image_number == (len(self.list_result_image)-1):
             self.next_result_image_btn.configure(state=DISABLED)
+        self.clear_translated_frame(self.translated_frame)
+        for data in self.list_result_image[self.result_image_number][1]:
+                if len(data)>6:
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], data[4], data[5], data[6],data[7])
+                else:
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3],self.font_path, self.font_size, data[4], data[5])
+                temp.pack(pady=10)
+                temp.config(highlightthickness=1,highlightbackground="blue")
+                self.list_translated_frame.append(temp)
+                self.translated_frame.update_idletasks()
+                if(len(self.list_translated_frame) > 0 and sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))]) < 680):
+                    frame_canvas_height = sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))])
+                else:
+                    frame_canvas_height = 680
+                self.frame_canvas.config(width=360, height=frame_canvas_height)
+                self.translated_canvas.config(scrollregion=self.translated_canvas.bbox("all"))
 
     #----------------
 
@@ -275,10 +369,26 @@ class MainWindow():
         if self.result_image_number == 0:
             self.prev_result_image_btn.configure(state=DISABLED)
         self.next_result_image_btn.configure(state=NORMAL)
-        self.img_result = Image.fromarray(self.list_result_image[self.result_image_number])
+        self.img_result = Image.fromarray(self.list_result_image[self.result_image_number][0])
         self.img_result.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
         self.img_result = ImageTk.PhotoImage(self.img_result) 
         self.result_canvas.itemconfig(self.on_result_canvas, image=self.img_result)
+        self.clear_translated_frame(self.translated_frame)
+        for data in self.list_result_image[self.result_image_number][1]:
+                if len(data)>6:
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], data[4], data[5], data[6],data[7])
+                else:
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3],self.font_path, self.font_size, data[4], data[5])
+                temp.pack(pady=10)
+                temp.config(highlightthickness=1,highlightbackground="blue")
+                self.list_translated_frame.append(temp)
+                self.translated_frame.update_idletasks()
+                if(len(self.list_translated_frame) > 0 and sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))]) < 680):
+                    frame_canvas_height = sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))])
+                else:
+                    frame_canvas_height = 680
+                self.frame_canvas.config(width=360, height=frame_canvas_height)
+                self.translated_canvas.config(scrollregion=self.translated_canvas.bbox("all"))
 
     #----------------
 
@@ -289,19 +399,195 @@ class MainWindow():
             if save_folder_path is not None and save_folder_path != '':
                 self.save_dir = save_folder_path
                 self.save_dir_lb.config(text=save_folder_path)  
-                for translated_img in self.list_result_image:
-                    cv2.imwrite(save_folder_path+"/" + str(uuid.uuid4())+".jpg", translated_img)
+                for file in self.list_result_image:
+                    cv2.imwrite(save_folder_path+"/" + str(uuid.uuid4())+".jpg", file[0])
         else:
             tkinter.messagebox.showinfo("Không tìm thấy ảnh đã dịch",  "HÌnh như đã có lỗi trong quá trình dịch, phiền bạn kiểm tra lại kết nối Internet và tiến hành chạy lại chương trình")
             
-            
+    #----------------
+
+    def add_translated_frame(self):
+        temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, 0,0,0,0, self.font_path, self.font_size, "a", "b")
+        temp.pack(pady=10)
+        temp.config(highlightthickness=1,highlightbackground="blue")
+        self.list_translated_frame.append(temp)
+        self.translated_frame.update_idletasks()
+        if(len(self.list_translated_frame) > 0 and sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))]) < 680):
+            frame_canvas_height = sum([self.list_translated_frame[i].winfo_height() for i in range(0, len(self.list_translated_frame))])
+        else:
+            frame_canvas_height = 680
+        self.frame_canvas.config(width=360, height=frame_canvas_height)
+        self.translated_canvas.config(scrollregion=self.translated_canvas.bbox("all"))
+
+    #---------------
+
+    def clear_translated_frame(self, wid):
+        self.list_translated_frame.clear()
+        _list = wid.winfo_children()
+        for item in _list :
+                _list.extend(item.winfo_children())
+        for item in _list:
+            item.destroy()
+
+    #----------------
+
+    def return_update_translated_image(self):
+        print("_________________________________")
+        self.update_translated_text(cv2.cvtColor(cv2.imread(self.list_preview_image[self.result_image_number], cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB))
+        # self.img_result = Image.fromarray(self.list_result_image[0])
+        self.img_result = Image.fromarray(self.list_result_image[self.result_image_number][0])
+        self.img_result.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
+        self.img_result = ImageTk.PhotoImage(self.img_result) 
+        self.result_canvas.itemconfig(self.on_result_canvas, image=self.img_result)
+
+    #----------------
+
+    def update_translated_text(self,img, child = None, data=None):
+        if child == None:
+            children = self.translated_frame.winfo_children()
+        else:
+            children = child.winfo_children()
+        list_data = data or []
+        for item in children:
+            if (type(item).__name__ == 'Modify_translated_text'):
+                # temp_var = Modify_translated_text(self.translated_frame,item.id, item.x_min,item.y_min,item.x_max,item.y_max, item.font_type, item.font_size, item.original_text, item.translated_text)
+                img = translate_from_dir.draw_text(img,ImageFont.truetype(item.font_type,int(item.font_size)), item.translated_text, int(item.x_min),int(item.y_min),int(item.x_max),int(item.y_max))
+                list_data.append([int(item.x_min),int(item.y_min),int(item.x_max),int(item.y_max),item.font_type,int(item.font_size),item.original_text, item.translated_text])
+            self.update_translated_text(img,item, list_data)    
+        self.list_result_image[self.result_image_number][0] = img
+        img = self.list_preview_image[self.result_image_number]
+        self.list_result_image[self.result_image_number][1] = list_data
+
+    #----------------
+
+class Modify_translated_text(Frame):
+    def __init__(self,parent,id, x_min, y_min, x_max, y_max, font_type, font_size, original_text, translated_text):
+        super().__init__(master=parent)
+        self.id = id
+        self.original_text = original_text
+        self.translated_text =translated_text
+        self.font_size = font_size
+        self.font_type = font_type
+        self.x_min = x_min
+        self.y_min = y_min
+        self.x_max = x_max
+        self.y_max = y_max
+        self.config(pady=10, padx=10)
+        #widgets
+
+        self.temp_font_size = IntVar(value = self.font_size)
+        self.temp_x_min = IntVar(value = self.x_min)
+        self.temp_y_min = IntVar(value = self.y_min)
+        self.temp_x_max = IntVar(value = self.x_max)
+        self.temp_y_max = IntVar(value = self.y_max)
+        self.temp_ori_text = StringVar(value= self.original_text)
+        self.temp_trans_text = StringVar(value = self.translated_text)
+
+
+        # create all of the main containers
+        self.top_frame = Frame(self, width=200, pady=3)
+        self.center = Frame(self, width=200, pady=3)
+        self.bottom_frame = Frame(self, width=200, pady=3)
+
+        # layout all of the main containers
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.top_frame.grid(row=0, sticky="ew")
+        self.center.grid(row=1, sticky="w")
+        self.bottom_frame.grid(row=2, sticky="w")
+
+        # create the widgets for the top frame
+        # model_label = Label(top_frame, text='Model Dimensions')
+        self.id_lb = Label(self.top_frame, text="ID: "+self.id)
+        self.x_min_lb = Label(self.top_frame, text='X_min:')
+        self.y_min_lb = Label(self.top_frame, text='Y_min:')
+        self.x_max_lb = Label(self.top_frame, text='X_max:')
+        self.y_max_lb = Label(self.top_frame, text='Y_max:')
+        self.x_min_en = Entry(self.top_frame,textvariable= self.temp_x_min, width=18)
+        self.y_min_en = Entry(self.top_frame,textvariable= self.temp_y_min, width=18)
+        self.x_max_en = Entry(self.top_frame,textvariable= self.temp_x_max, width=18)
+        self.y_max_en = Entry(self.top_frame,textvariable= self.temp_y_max, width=18)
+
+        # layout the widgets in the top frame
+        # model_label.grid(row=0, columnspan=4)
+        self.id_lb.grid(row = 0, columnspan=4, sticky='w')
+        self.x_min_lb.grid(row=1, column=0)
+        self.y_min_lb.grid(row=1, column=2)
+        self.x_max_lb.grid(row=2, column=0)
+        self.y_max_lb.grid(row=2, column=2)
+        self.x_min_en.grid(row=1, column=1)
+        self.y_min_en.grid(row=1, column=3)
+        self.x_max_en.grid(row=2, column=1)
+        self.y_max_en.grid(row=2, column=3)
+
+        # create the center widgets
+        self.original_txt_lb = Label(self.center, text='Văn bản gốc:', justify=RIGHT)
+        self.original_txt_en = Text(self.center,width=39,height = 5)
+        self.original_txt_en.insert(END, self.original_text)
+        self.original_txt_en.bind('<KeyRelease>', self.on_update_original_text)
+        self.original_txt_lb.grid(row=3, sticky='w')
+        self.original_txt_en.grid(row=4, sticky='w')
+        self.translated_txt_lb = Label(self.center, text='Văn bản sau khi dịch:', justify=LEFT)
+        self.translated_txt_en = Text(self.center, width=39, height = 5)
+        self.translated_txt_en.insert(END, self.translated_text)
+        self.translated_txt_en.bind('<KeyRelease>', self.on_update_translated_text)
+        self.translated_txt_lb.grid(row=5,sticky='w')
+        self.translated_txt_en.grid(row=6,sticky='w')
+
+        self.font_size_lb = Label(self.bottom_frame, text='Font size:', width=10)
+        self.font_size_en = Entry(self.bottom_frame,textvariable= self.temp_font_size, width=10)
+        self.temp_font_size.trace_add('write', self.on_update_font_size)
+        self.font_size_lb.grid(row=7, column=0)
+        self.font_size_en.grid(row=7, column=1)
+        self.font_type_lb = Label(self.bottom_frame, text='Font type:')
+        self.font_type_lb.grid(row=7, column=2)
+        self.font_type_btn = Button(self.bottom_frame, text='Pick my font', command=self.get_font_path)
+        self.font_type_btn.grid(row=7, column=3)
+        self.font_type_path_lb = Label(self.bottom_frame, text=self.font_type,wraplength=140)
+        self.font_type_path_lb.grid(row=8, column=2, columnspan=2)
+
+        self.del_translated_text = Button(self.bottom_frame, text='Xóa bản dịch này', command=self.delete_translated_box)
+        self.del_translated_text.grid(row=8, column=0, pady=10)
+
+        
+        
+        self.temp_x_min.trace_add('write', self.on_update_x_min)
+        self.temp_y_min.trace_add('write', self.on_update_y_min)
+        self.temp_x_max.trace_add('write', self.on_update_x_max)
+        self.temp_y_max.trace_add('write', self.on_update_y_max)
+
+    def get_font_path(self):
+        file = fd.askopenfilename(filetypes=[('True Type Font', '*.ttf'),('Web Open Format Font', '*.woff'),('Open Type Font', '*.otf'),('All files', '*.*')]) 
+        if file is not None and file!='':
+            self.font_type = file
+            self.font_type_path_lb.configure(text = file)
+
+    def delete_translated_box(self):
+        if tkinter.messagebox.askquestion("Xóa bản dịch?", "Bạn có chắc chắn rằng muốn xóa bản dịch này?") == 'yes':
+            self.destroy()
+    
+    def on_update_font_size(self, var, index, mode):
+        self.font_size = self.font_size_en.get()
+    def on_update_x_min(self, var, index, mode):
+        self.x_min = self.x_min_en.get()
+    def on_update_y_min(self, var, index, mode):
+        self.y_min = self.y_min_en.get()
+    def on_update_x_max(self, var, index, mode):
+        self.x_max = self.x_max_en.get()
+    def on_update_y_max(self, var, index, mode):
+        self.y_max = self.y_max_en.get()
+    def on_update_original_text(self, event):
+        self.original_text = self.original_txt_en.get("1.0", END)
+    def on_update_translated_text(self, event):
+        self.translated_text = self.translated_txt_en.get("1.0", END)
 
 #----------------------------------------------------------------------
 if __name__ == '__main__':
     r = Tk()
     r.title('Phần mềm dịch truyện được viết bằng Python')
     r.config(bg='white')
-    r.geometry('1080x900')
+    r.geometry('1440x900')
     photo = PhotoImage(file = resource_path(r'assets\logo.png'))
     r.wm_iconphoto(False, photo)
     MainWindow(r)
