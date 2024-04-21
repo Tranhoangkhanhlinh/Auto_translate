@@ -30,8 +30,10 @@ class MainWindow():
     def __init__(self, main):
 
         # Temp var
-        self.find_text_model_jp = easyocr.Reader(['ja'], gpu=False)
+        self.find_text_model_cn = easyocr.Reader(['ch_tra'], gpu=False)
         self.find_text_model_kr = easyocr.Reader(['ko'], gpu=False)
+        self.find_text_model_jp = easyocr.Reader(['ja'], gpu=False)
+        self.main_lang_detect = None
         self.read_text_model = translate_from_dir.init_model(pretrained_model = resource_path('lib/manga_ocr/manga-ocr-base'),gpu = False)
         # self.find_text_model = ""
         # self.read_text_model =""
@@ -328,6 +330,7 @@ class MainWindow():
             if self.internet_connection == "Disconnected":
                 if tkinter.messagebox.askquestion("Không có kết nối mạng", "Phần mềm sử dụng Google Dịch nên cần có kết nối mạng, nhưng tôi không thể kết nối đến Google Dịch, bạn có muốn tiếp với kết quả dịch bị bỏ trống?", icon='warning') == "no":
                     return
+            self.main_lang_detect = None
             self.run_btn.configure(state=DISABLED)
             top_lv = Toplevel(self.main)
             top_lv.geometry('500x100')
@@ -339,6 +342,10 @@ class MainWindow():
             progressbar = Progressbar(top_lv, variable=progress_var, maximum=len(self.list_preview_image))
             progressbar.pack(fill=X, expand=1)
             k = 0
+            progress_var.set(k)
+            current_progress.configure(text="Đang xác định ngôn ngữ của truyện")
+            top_lv.update()
+
             if(self.font_size_en.get() != ''):
                 self.font_size = int(self.font_size_en.get())
             else:
@@ -346,11 +353,17 @@ class MainWindow():
             self.font = ImageFont.truetype(self.font_path, self.font_size)
             self.clear_translated_frame(self.translated_frame)
             self.list_result_image.clear()
+            get_first_5_img = 5 if len(self.list_preview_image) > 5 else len(self.list_preview_image)
+            self.main_lang_detect = translate_from_dir.detect_lang_in_image(self.find_text_model_jp,self.find_text_model_kr,self.find_text_model_cn, self.list_preview_image[0:get_first_5_img])
+
             for img in self.list_preview_image:
                 progress_var.set(k)
                 current_progress.configure(text=str(k)+"/"+str(len(self.list_preview_image)))
                 top_lv.update()
-                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_jp,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
+                if self.main_lang_detect == 'jp' or self.main_lang_detect=='cn':
+                    self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,"", cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
+                else:
+                    self.list_result_image.append(translate_from_dir.get_translate_data("",self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
                 # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
                 k += 1
             top_lv.destroy()
@@ -364,7 +377,7 @@ class MainWindow():
             self.result_canvas.itemconfig(self.on_result_canvas, image=self.img_result)
             self.prev_result_image_btn.configure(state=DISABLED)
             for data in self.list_result_image[self.result_image_number][1]:
-                temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], self.font_path, self.font_size, data[4],data[5])
+                temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], self.font_path, self.font_size, data[4],data[5], self.default_lang_val)
                 temp.pack(pady=10)
                 temp.config(highlightthickness=1,highlightbackground="blue")
                 self.list_translated_frame.append(temp)
@@ -398,9 +411,9 @@ class MainWindow():
         self.clear_translated_frame(self.translated_frame)
         for data in self.list_result_image[self.result_image_number][1]:
                 if len(data)>6:
-                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], data[4], data[5], data[6],data[7])
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], data[4], data[5], data[6],data[7], self.default_lang_val)
                 else:
-                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3],self.font_path, self.font_size, data[4], data[5])
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3],self.font_path, self.font_size, data[4], data[5], self.default_lang_val)
                 temp.pack(pady=10)
                 temp.config(highlightthickness=1,highlightbackground="blue")
                 self.list_translated_frame.append(temp)
@@ -426,9 +439,9 @@ class MainWindow():
         self.clear_translated_frame(self.translated_frame)
         for data in self.list_result_image[self.result_image_number][1]:
                 if len(data)>6:
-                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], data[4], data[5], data[6],data[7])
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3], data[4], data[5], data[6],data[7], self.default_lang_val)
                 else:
-                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3],self.font_path, self.font_size, data[4], data[5])
+                    temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, data[0],data[1],data[2],data[3],self.font_path, self.font_size, data[4], data[5], self.default_lang_val)
                 temp.pack(pady=10)
                 temp.config(highlightthickness=1,highlightbackground="blue")
                 self.list_translated_frame.append(temp)
@@ -457,7 +470,7 @@ class MainWindow():
     #----------------
 
     def add_translated_frame(self):
-        temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, 0,0,0,0, self.font_path, self.font_size, "a", "b")
+        temp = Modify_translated_text(self.translated_frame,uuid.uuid4().hex, 0,0,0,0, self.font_path, self.font_size, "a", "b", self.default_lang_val)
         temp.pack(pady=10)
         temp.config(highlightthickness=1,highlightbackground="blue")
         self.list_translated_frame.append(temp)
@@ -511,7 +524,7 @@ class MainWindow():
     #----------------
 
 class Modify_translated_text(Frame):
-    def __init__(self,parent,id, x_min, y_min, x_max, y_max, font_type, font_size, original_text, translated_text):
+    def __init__(self,parent,id, x_min, y_min, x_max, y_max, font_type, font_size, original_text, translated_text, default_lang = 'en'):
         super().__init__(master=parent)
         self.id = id
         self.original_text = original_text
@@ -522,6 +535,7 @@ class Modify_translated_text(Frame):
         self.y_min = y_min
         self.x_max = x_max
         self.y_max = y_max
+        self.default_lang = default_lang
         self.config(pady=10, padx=10)
         #widgets
 

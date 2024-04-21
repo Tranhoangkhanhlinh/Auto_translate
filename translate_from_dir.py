@@ -79,6 +79,12 @@ def draw_text(img,font, text, x, y, x_max, y_max):
 def translate_img(model, img):
     return model(Image.fromarray(img))
 
+def translate_img_jp(reader_jp, img):
+    list_of_text = []
+    for translated_text in reader_jp.readtext(img):
+        list_of_text.append(translated_text[1])
+    return ''.join(x for x in list_of_text)
+
 def translate_img_kr(reader_kr, img):
     list_of_text = []
     for translated_text in reader_kr.readtext(img):
@@ -89,6 +95,13 @@ def init_model(pretrained_model, gpu = False):
     return MangaOcr(pretrained_model, gpu)
 
 def regconize_text_lang(reader_jp, reader_kr, img):
+    print("***************************************")
+    for i in reader_jp.readtext(img):
+        print(i)
+    print("+++++")
+    for j in reader_kr.readtext(img):
+        print(j)
+    print("***************************************")
     return reader_jp.readtext(img)[0][2] > reader_kr.readtext(img)[0][2]
 
 def get_bboxes(image, model, bbox_min_score = 0.01):
@@ -137,11 +150,35 @@ def translate_and_add_text_image(model,img, font, bboxes, lang = 'en'):
             print(e)
     return img
 
-def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes, internet_conection = 'Connected', lang = 'en'):
+def detect_lang_in_image(reader_jp, reader_kr, reader_cn, list_img):
+    avr_jp = []
+    avr_kr = []
+    avr_cn = []
+    for image in list_img:
+        print(image)
+        img = cv2.imread(image,0)
+        for temp_model_jp_point in reader_jp.readtext(sharpen((img))):
+            avr_jp.append(temp_model_jp_point[2])
+        for temp_model_kr_point in reader_kr.readtext(sharpen((img))):
+            avr_kr.append(temp_model_kr_point[2])
+        for temp_model_cn_point in reader_cn.readtext(sharpen((img))):
+            avr_cn.append(temp_model_cn_point[2])
+    max_lang_conf = max(sum(avr_jp), sum(avr_kr), sum(avr_cn))
+    print("JP avr: "+ str(sum(avr_jp)))
+    print("KR avr: "+ str(sum(avr_kr)))
+    print("CN avr: "+ str(sum(avr_cn)))
+    if sum(avr_jp) == max_lang_conf:
+        return 'jp'
+    elif sum(avr_kr) == max_lang_conf:
+        return 'kr'
+    else: 
+        return 'cn'
+
+def get_translate_data(model, reader_kr, img,font, bboxes, internet_conection = 'Connected', lang = 'en'):
     data = []
     for j in bboxes:
         try:
-            if(regconize_text_lang(reader_jp,reader_kr,((preprocess((img[j[2]:j[3], j[0]:j[1]])))))):
+            if model:
                 get_text = (translate_img(model, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
             else:
                 get_text = (translate_img_kr(reader_kr, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
