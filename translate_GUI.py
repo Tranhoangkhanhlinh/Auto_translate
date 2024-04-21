@@ -325,6 +325,9 @@ class MainWindow():
         if len(self.list_preview_image) == 0:
             tkinter.messagebox.showinfo("Image file not found",  "HÌnh như thư mục bạn đã chọn không có tệp định dạng ảnh")
         else:
+            if self.internet_connection == "Disconnected":
+                if tkinter.messagebox.askquestion("Không có kết nối mạng", "Phần mềm sử dụng Google Dịch nên cần có kết nối mạng, nhưng tôi không thể kết nối đến Google Dịch, bạn có muốn tiếp với kết quả dịch bị bỏ trống?", icon='warning') == "no":
+                    return
             self.run_btn.configure(state=DISABLED)
             top_lv = Toplevel(self.main)
             top_lv.geometry('500x100')
@@ -347,7 +350,7 @@ class MainWindow():
                 progress_var.set(k)
                 current_progress.configure(text=str(k)+"/"+str(len(self.list_preview_image)))
                 top_lv.update()
-                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_jp,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01), self.default_lang_val))
+                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_jp,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
                 # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
                 k += 1
             top_lv.destroy()
@@ -663,10 +666,14 @@ if __name__ == '__main__':
     splash_screen = Toplevel(background="white")
     splash_screen.overrideredirect(True)
     splash_screen.title("Splash Screen")
-    x, y = centerWindow(401, 363, r)
-    splash_screen.geometry(f"401x363+{x}+{y}")
+    temp_pixel = PhotoImage(width=1, height=1)
+    temp_lb = Label(splash_screen, text="Cảm ơn bạn vì đã sử dụng phần mềm. Vui lòng chờ trong lúc chương trình khởi chạy nhé.", font=("Arial", 20), wraplength= 519,image=temp_pixel, compound='c', width=519, height=100)
+    temp_lb.pack()
+    temp_lb.place(x= 0 , y = 300)
+    x, y = centerWindow(519, 400, r)
+    splash_screen.geometry(f"519x400+{x}+{y}")
     
-    image = tkinter.PhotoImage(file=resource_path(r'assets/greeting.png')) 
+    image = tkinter.PhotoImage(file=resource_path(r'assets/loading_screen.png')) 
     label = Label(splash_screen, image = image)
     label.pack()
     splash_screen.update()

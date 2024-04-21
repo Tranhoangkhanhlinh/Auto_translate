@@ -137,7 +137,7 @@ def translate_and_add_text_image(model,img, font, bboxes, lang = 'en'):
             print(e)
     return img
 
-def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes, lang = 'en'):
+def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes, internet_conection = 'Connected', lang = 'en'):
     data = []
     for j in bboxes:
         try:
@@ -146,11 +146,13 @@ def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes, lang = 'en
             else:
                 get_text = (translate_img_kr(reader_kr, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
             if get_text:
-                translation = GoogleTranslator(source='auto', target=lang).translate(get_text)
-                if translation:
-                    print(get_text + " --> "+ translation)
-                    img = draw_text(img,font, translation, j[0],j[2],j[1],j[3])
-                    data.append([j[0],j[2],j[1],j[3],get_text,translation])
+                if internet_conection == 'Connected':
+                    translation = GoogleTranslator(source='auto', target=lang).translate(get_text) or ""
+                else: 
+                    translation = ""
+                print(get_text + " --> "+ translation)
+                img = draw_text(img,font, translation, j[0],j[2],j[1],j[3])
+                data.append([j[0],j[2],j[1],j[3],get_text,translation])
         except Exception as e:
             print(e)
     return [img,data]
