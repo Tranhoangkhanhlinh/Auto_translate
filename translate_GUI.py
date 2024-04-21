@@ -1,15 +1,15 @@
 from tkinter.ttk import *
 from tkinter import *
-from PIL import ImageTk, Image
+from PIL import ImageTk, Image, ImageFont
 from tkinter import filedialog as fd
 import tkinter.messagebox 
 import translate_from_dir
 import os
 import easyocr
-from PIL import ImageFont
 import cv2
 import uuid
 import sys
+import requests
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -28,12 +28,14 @@ class MainWindow():
     #----------------
     
     def __init__(self, main):
+
         # Temp var
         self.find_text_model_jp = easyocr.Reader(['ja'], gpu=False)
         self.find_text_model_kr = easyocr.Reader(['ko'], gpu=False)
         self.read_text_model = translate_from_dir.init_model(pretrained_model = resource_path('lib/manga_ocr/manga-ocr-base'),gpu = False)
         # self.find_text_model = ""
         # self.read_text_model =""
+
         self.main = main
         self.font_path = resource_path(r"font\Roboto\Roboto-Regular.ttf")
         self.font_size = 30
@@ -47,6 +49,29 @@ class MainWindow():
         self.not_found_img.thumbnail((400,680), resample = Image.Resampling.LANCZOS)
         self.not_found_img = ImageTk.PhotoImage(self.not_found_img)
         self.save_dir = "None"
+        self.internet_connection = "Connected"
+
+        #Combobox select translate language
+        self.support_translate_lang = {'Tiếng Việt': 'vi', 'Tiếng Anh':'en'}
+        self.default_lang = StringVar(value = 'Tiếng Việt')
+        self.select_default_lang_ccb = Combobox(main,width=15, height=20, values=list(self.support_translate_lang.keys()), justify="center", textvariable=self.default_lang)
+        self.select_default_lang_ccb.bind('<<ComboboxSelected>>',self.on_update_translate_lang)
+        self.select_default_lang_ccb.place(x = 10, y = 460)
+        self.select_default_lang_lb = Label(main, text = "Ngôn ngữ bạn muốn dịch", wraplength=130)
+        self.select_default_lang_lb.place(x = 10, y = 420)
+        self.default_lang_val = self.support_translate_lang[self.default_lang.get()]
+
+        # Internet Connection checking
+        self.internet_checking_canvas = Canvas(main, width=100, height=20, borderwidth=0, highlightthickness=0)
+        self.internet_checking_canvas.pack()
+        self.internet_checking_canvas.place(x = 10, y= 730)
+        self.internet_checking_circle_state = self.internet_checking_canvas.create_oval(5,5,15,15, fill='green')
+        self.internet_connection_lb = Label(self.internet_checking_canvas, text= self.internet_connection)
+        self.internet_connection_lb.pack()
+        self.internet_connection_lb.place(x=20, y=0)
+        self.internet_checking_lb = Label(main, text= "Tình trạng kết nối Internet:", wraplength=130, justify=LEFT)
+        self.internet_checking_lb.pack()
+        self.internet_checking_lb.place(x=10, y = 690)
 
         #BUTTON
         # Get file button
@@ -168,11 +193,32 @@ class MainWindow():
 
         self.original_img_lb.lift(self.preview_canvas)
         self.translated_img_lb.lift(self.result_canvas)
+        self.is_connected()
+    #---------------
 
-    # defining the callback function (observer)
+    def is_connected(self):
+        try:
+            request = requests.get("https://translate.google.com/m",timeout=10)
+            self.internet_connection = "Connected"
+            self.internet_checking_canvas.itemconfig(self.internet_checking_circle_state, fill='green')
+        except OSError:
+            self.internet_connection = "Disconnected"
+            self.internet_checking_canvas.itemconfig(self.internet_checking_circle_state, fill='red')
+        finally:
+            self.internet_connection_lb.config(text=self.internet_connection)
+            self.main.after(1000, self.is_connected) # do checking again one second later
+
+        
+
+    #---------------
+
+    def on_update_translate_lang(self, var):
+        self.default_lang_val = self.support_translate_lang[self.default_lang.get()]
+
+    #---------------
+
     def on_update_global_font_size(self, var, index, mode):
         self.font_size = self.font_size_en.get()
-        # print ("Traced variable {}".format(self.font_size_en.get()))
 
     #----------------
 
@@ -301,7 +347,7 @@ class MainWindow():
                 progress_var.set(k)
                 current_progress.configure(text=str(k)+"/"+str(len(self.list_preview_image)))
                 top_lv.update()
-                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_jp,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01)))
+                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_jp,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01), self.default_lang_val))
                 # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
                 k += 1
             top_lv.destroy()
@@ -575,13 +621,11 @@ class Modify_translated_text(Frame):
             if(self.original_text == ""):
                 tkinter.messagebox.showinfo("Văn bản cần dịch trống",  "Không tìm thấy văn bản cần dịch")
             else:
-                self.translated_text = translate_from_dir.translate_text(self.original_text,'en')
+                self.translated_text = translate_from_dir.translate_text(self.original_text,self.default_lang)
                 self.translated_txt_en.delete('1.0', END)
                 self.translated_txt_en.insert(END, self.translated_text)
         except Exception as e:
             tkinter.messagebox.showinfo("Không thể dịch được văn bản",  "HÌnh như đã có lỗi trong quá trình dịch, phiền bạn kiểm tra lại kết nối Internet và tiến hành chạy lại chương trình")
-
-            
     
     def on_update_font_size(self, var, index, mode):
         self.font_size = self.font_size_en.get()
@@ -599,6 +643,13 @@ class Modify_translated_text(Frame):
         self.translated_text = self.translated_txt_en.get("1.0", END)
 
 #----------------------------------------------------------------------
+def centerWindow(width, height, root):  # Return 4 values needed to center Window
+    screen_width = root.winfo_screenwidth()  # Width of the screen
+    screen_height = root.winfo_screenheight() # Height of the screen     
+    x = (screen_width/2) - (width/2)
+    y = (screen_height/2) - (height/2)
+    return int(x), int(y)
+
 if __name__ == '__main__':
     r = Tk()
     r.title('Phần mềm dịch truyện được viết bằng Python')
@@ -606,5 +657,27 @@ if __name__ == '__main__':
     r.geometry('1440x900')
     photo = PhotoImage(file = resource_path(r'assets\logo.png'))
     r.wm_iconphoto(False, photo)
+    r.withdraw()
+
+    # SPLASH SCREEN CODE
+    splash_screen = Toplevel(background="white")
+    splash_screen.overrideredirect(True)
+    splash_screen.title("Splash Screen")
+    x, y = centerWindow(401, 363, r)
+    splash_screen.geometry(f"401x363+{x}+{y}")
+    
+    image = tkinter.PhotoImage(file=resource_path(r'assets/greeting.png')) 
+    label = Label(splash_screen, image = image)
+    label.pack()
+    splash_screen.update()
+    
+    # MAIN WINDOW CODE + Other Processing
     MainWindow(r)
+    
+    # Start the event loop
+    r.deiconify()
+    splash_screen.destroy()
+    
+    
+    
     r.mainloop()

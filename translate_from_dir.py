@@ -122,14 +122,14 @@ def get_bboxes(image, model, bbox_min_score = 0.01):
 def translate_text(text, lang='en'):
     return GoogleTranslator(source='auto', target=lang).translate(text)
 
-def translate_and_add_text_image(model,img, font, bboxes):
+def translate_and_add_text_image(model,img, font, bboxes, lang = 'en'):
     for j in bboxes:
         try:
             #translation = translator.translate(translate_img(model, (((preprocess(img[j[2]:j[3], j[0]:j[1]]))))),dest='en')
             #translation = translator.translate(pytesseract.image_to_string(preprocess(sharpen(((img[j[2]:j[3], j[0]:j[1]])))), lang = "chi_sim_vert+chi_sim").replace(" ", "").replace("\n", ""))
             get_text = (translate_img(model, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
             if get_text:
-                translation = translate_text(get_text,'en')
+                translation = translate_text(get_text,lang)
                 if translation:
                     print(get_text + " --> "+ translation)
                     img = draw_text(img,font, translation, j[0],j[2],j[1],j[3])
@@ -137,7 +137,7 @@ def translate_and_add_text_image(model,img, font, bboxes):
             print(e)
     return img
 
-def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes):
+def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes, lang = 'en'):
     data = []
     for j in bboxes:
         try:
@@ -146,7 +146,7 @@ def get_translate_data(model, reader_jp, reader_kr, img,font, bboxes):
             else:
                 get_text = (translate_img_kr(reader_kr, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
             if get_text:
-                translation = GoogleTranslator(source='auto', target='en').translate(get_text)
+                translation = GoogleTranslator(source='auto', target=lang).translate(get_text)
                 if translation:
                     print(get_text + " --> "+ translation)
                     img = draw_text(img,font, translation, j[0],j[2],j[1],j[3])
