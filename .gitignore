@@ -1,4 +1,8 @@
 lib/manga_ocr/manga-ocr-base
-lib/pytesseract
+lib/pytesseract/*.dll
+lib/pytesseract/*.exe
+lib/pytesseract/*.html
+lib/pytesseract/tessdata
+lib/pytesseract/Tesseract-OCR
 lib/manga_ocr/__pycache__
 __pycache__
