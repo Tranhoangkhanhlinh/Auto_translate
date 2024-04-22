@@ -30,7 +30,7 @@ class MainWindow():
     def __init__(self, main):
 
         # Temp var
-        self.find_text_model_cn = easyocr.Reader(['ch_tra'], gpu=False)
+        # self.find_text_model_cn = easyocr.Reader(['ch_tra'], gpu=False)
         self.find_text_model_kr = easyocr.Reader(['ko'], gpu=False)
         self.find_text_model_jp = easyocr.Reader(['ja'], gpu=False)
         self.main_lang_detect = None
@@ -342,9 +342,6 @@ class MainWindow():
             progressbar = Progressbar(top_lv, variable=progress_var, maximum=len(self.list_preview_image))
             progressbar.pack(fill=X, expand=1)
             k = 0
-            progress_var.set(k)
-            current_progress.configure(text="Đang xác định ngôn ngữ của truyện")
-            top_lv.update()
 
             if(self.font_size_en.get() != ''):
                 self.font_size = int(self.font_size_en.get())
@@ -353,17 +350,12 @@ class MainWindow():
             self.font = ImageFont.truetype(self.font_path, self.font_size)
             self.clear_translated_frame(self.translated_frame)
             self.list_result_image.clear()
-            get_first_5_img = 5 if len(self.list_preview_image) > 5 else len(self.list_preview_image)
-            self.main_lang_detect = translate_from_dir.detect_lang_in_image(self.find_text_model_jp,self.find_text_model_kr,self.find_text_model_cn, self.list_preview_image[0:get_first_5_img])
 
             for img in self.list_preview_image:
                 progress_var.set(k)
                 current_progress.configure(text=str(k)+"/"+str(len(self.list_preview_image)))
                 top_lv.update()
-                if self.main_lang_detect == 'jp' or self.main_lang_detect=='cn':
-                    self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,"", cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
-                else:
-                    self.list_result_image.append(translate_from_dir.get_translate_data("",self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
+                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
                 # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
                 k += 1
             top_lv.destroy()

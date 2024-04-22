@@ -4,12 +4,13 @@ import easyocr
 import cv2
 # from googletrans import Translator
 # translator = Translator(service_urls=['translate.google.com'])
-# import pytesseract
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+import pytesseract
+pytesseract.pytesseract.tesseract_cmd = r"lib\pytesseract\tesseract.exe"
 from deep_translator import GoogleTranslator
 import numpy as np
 import re
 from lib.manga_ocr import MangaOcr
+import langid
 import os
 
 
@@ -60,7 +61,8 @@ def text_wrap(text, font, max_width):
             if not line:
                 line = words[i]
                 i += 1
-            lines.append(line)    
+            if line.strip() != '':
+                lines.append(line.strip())    
     return lines
  
  
@@ -94,24 +96,18 @@ def translate_img_kr(reader_kr, img):
 def init_model(pretrained_model, gpu = False):
     return MangaOcr(pretrained_model, gpu)
 
-def regconize_text_lang(reader_jp, reader_kr, img):
-    print("***************************************")
-    for i in reader_jp.readtext(img):
-        print(i)
-    print("+++++")
-    for j in reader_kr.readtext(img):
-        print(j)
-    print("***************************************")
-    return reader_jp.readtext(img)[0][2] > reader_kr.readtext(img)[0][2]
+def distance_of_two_bbox(boxA, boxB):
+    return [min(abs(boxA[0] - boxB[1]), abs(boxA[1] - boxB[0])), min(abs(boxA[2] - boxB[3]), abs(boxA[3] - boxB[2]))]
 
 def get_bboxes(image, model, bbox_min_score = 0.01):
     bboxes = []
+    percent = 1
     for i in model.detect(sharpen(image), bbox_min_score = bbox_min_score)[0][0]:
         try:
-            x_min = min(i[0],i[1])
-            y_min = min(i[2],i[3])
-            x_max = max(i[0],i[1])
-            y_max = max(i[2],i[3])
+            x_min = min(i[0],i[1]) - int(image.shape[1]*percent/100) if min(i[0],i[1]) - int(image.shape[1]*percent/100) > 0 else min(i[0],i[1])
+            y_min = min(i[2],i[3]) - int(image.shape[0]*percent/100) if min(i[2],i[3]) - int(image.shape[0]*percent/100) > 0 else min(i[2],i[3])
+            x_max = max(i[0],i[1]) + int(image.shape[1]*percent/100) if max(i[0],i[1]) + int(image.shape[1]*percent/100) < int(image.shape[1]) else max(i[0],i[1])
+            y_max = max(i[2],i[3]) + int(image.shape[0]*percent/100) if max(i[2],i[3]) + int(image.shape[0]*percent/100) < int(image.shape[0]) else max(i[2],i[3])
             for y in bboxes:
                 overlap = bb_intersection_over_union([x_min, x_max, y_min, y_max], y)
                 if(overlap[0]>0):
@@ -150,38 +146,40 @@ def translate_and_add_text_image(model,img, font, bboxes, lang = 'en'):
             print(e)
     return img
 
-def detect_lang_in_image(reader_jp, reader_kr, reader_cn, list_img):
-    avr_jp = []
-    avr_kr = []
-    avr_cn = []
-    for image in list_img:
-        print(image)
-        img = cv2.imread(image,0)
-        for temp_model_jp_point in reader_jp.readtext(sharpen((img))):
-            avr_jp.append(temp_model_jp_point[2])
-        for temp_model_kr_point in reader_kr.readtext(sharpen((img))):
-            avr_kr.append(temp_model_kr_point[2])
-        for temp_model_cn_point in reader_cn.readtext(sharpen((img))):
-            avr_cn.append(temp_model_cn_point[2])
-    max_lang_conf = max(sum(avr_jp), sum(avr_kr), sum(avr_cn))
-    print("JP avr: "+ str(sum(avr_jp)))
-    print("KR avr: "+ str(sum(avr_kr)))
-    print("CN avr: "+ str(sum(avr_cn)))
-    if sum(avr_jp) == max_lang_conf:
-        return 'jp'
-    elif sum(avr_kr) == max_lang_conf:
-        return 'kr'
-    else: 
-        return 'cn'
-
-def get_translate_data(model, reader_kr, img,font, bboxes, internet_conection = 'Connected', lang = 'en'):
+def get_translate_data(model, model_kr, img,font, bboxes, internet_conection = 'Connected', lang = 'en'):
     data = []
+    conf_jp = 0
+    conf_kr = 0
+    conf_cn = 0
+    lang_detect = 'jp'
+    for i in bboxes:
+            print(i[2],i[3], i[0],i[1])
+            custom_config = r'-l jpn+kor+chi_tra+chi_sim --psm 6'
+            text = pytesseract.image_to_string(preprocess(img[i[2]:i[3], i[0]:i[1]]),config=custom_config).replace('\n','').replace(' ','')
+            if text:
+                try:
+                    language_detected = langid.classify(text)[0]
+                    if(language_detected == 'zh'):
+                        conf_cn = conf_cn+1
+                    elif(language_detected == 'ja'):
+                        conf_jp = conf_jp + 1
+                    elif(language_detected == 'ko'):
+                        conf_kr = conf_kr + 1
+                except Exception as e:
+                    print(e)
+    max_lang_conf = max(conf_kr, conf_jp, conf_cn)
+    if conf_jp == max_lang_conf:
+        lang_detect = 'jp'
+    elif conf_cn == max_lang_conf:
+        lang_detect = 'cn'
+    elif conf_kr == max_lang_conf:
+        lang_detect = 'kr'
+    print(lang_detect + " " + str(conf_jp) + " " + str(conf_kr) + " " + str(conf_cn))
     for j in bboxes:
-        try:
-            if model:
-                get_text = (translate_img(model, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
+            if lang_detect == 'jp' or lang_detect == 'cn':
+                get_text = (translate_img(model, ((preprocess(sharpen(img[j[2]:j[3], j[0]:j[1]])))))).replace(u'\uff0e', ".")
             else:
-                get_text = (translate_img_kr(reader_kr, ((preprocess((img[j[2]:j[3], j[0]:j[1]]))))))
+                get_text = (translate_img_kr(model_kr, ((preprocess((img[j[2]:j[3], j[0]:j[1]])))))).replace(u'\uff0e', ".")
             if get_text:
                 if internet_conection == 'Connected':
                     translation = GoogleTranslator(source='auto', target=lang).translate(get_text) or ""
@@ -190,8 +188,7 @@ def get_translate_data(model, reader_kr, img,font, bboxes, internet_conection = 
                 print(get_text + " --> "+ translation)
                 img = draw_text(img,font, translation, j[0],j[2],j[1],j[3])
                 data.append([j[0],j[2],j[1],j[3],get_text,translation])
-        except Exception as e:
-            print(e)
+
     return [img,data]
 
 def load_images_from_folder(folder):
