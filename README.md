@@ -11,7 +11,9 @@ Thực hiện theo các bước sau (ngôn ngữ lập trình python):
 git clone https://github.com/Tranhoangkhanhlinh/Auto_translate.git
 ```
 **Bước 3**: Tạo một thư mục mới, đặt tên manga-ocr-base   
-**Bước 4**: Truy cập [Huggingface](https://huggingface.co/kha-white/manga-ocr-base/tree/main) , tải tất cả file và đưa vào thư mục manga-ocr-base   
+**Bước 4**:    
+  **Bước 4.1**: Truy cập [Huggingface](https://huggingface.co/kha-white/manga-ocr-base/tree/main) , tải tất cả file và đưa vào thư mục manga-ocr-base   
+  **Bước 4.2**: Nhấp vào đây để tải [Pytesseract](https://github.com/UB-Mannheim/tesseract/wiki), sau đó cài đặt các loại ngôn ngữ chi_sim, chi_tra, jpn, kor, rồi đưa vào thư mục pytesseract   
 **Bước 5**: Chạy Miniconda   
 **Bước 6**: Tạo môi trường ảo bằng lệnh 
 ```sh
