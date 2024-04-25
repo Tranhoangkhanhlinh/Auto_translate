@@ -2,7 +2,7 @@
 Bạn có một bộ manga khá cuốn nhưng lại không biết tiếng Nhật, không biết tiếng Trung? Vậy thì đây có thể là một chương trình bạn đang tìm. Chương trình sẽ tự động tìm văn bản trên ảnh bạn đã cung cấp và trả về ảnh với bản dịch của văn bản đó.
 
 ## Hướng dẫn cài đặt
-Bạn có thể tải file [.zip](https://drive.google.com/file/d/10mykEfRaxcCkYpoYCmZu0JLSu2n2mIPs/view?usp=drive_link) về và giải nén rồi sử dụng   
+Bạn có thể tải file [.zip](https://drive.google.com/file/d/1jmcj5KDewFaftx2aljcOaSZSMni1M8ye/view?usp=sharing) (3.12GB sau giải nén) về và giải nén rồi sử dụng   
 Hoặc   
 Thực hiện theo các bước sau (ngôn ngữ lập trình python):   
 **Bước 1**: Cài đặt miniconda [Nhấn vào đây và làm theo hướng dẫn](https://docs.conda.io/projects/conda/en/4.6.1/user-guide/install/windows.html)   
