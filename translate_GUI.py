@@ -470,9 +470,8 @@ class MainWindow():
             current_progress.configure(width=500, wraplength=500, anchor='center', font = ('Arial',13))
             current_progress.pack()
             progressbar = ctk.CTkProgressBar(top_lv, width=500, height=20, progress_color='#74E291', border_color='#000000')
-            progressbar.set(0)
-            progressbar.start()
             progressbar.pack()
+            progressbar.start()
             top_lv.after(10, top_lv.lift)
             top_lv.update()
             k = 0
@@ -486,12 +485,12 @@ class MainWindow():
             self.list_result_image.clear()
 
             for img in self.list_preview_image:
-                
-                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
-                # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
                 progressbar.set(k/len(self.list_preview_image))
                 current_progress.configure(text=str(k)+"/"+str(len(self.list_preview_image)))
-                top_lv.update()
+                top_lv.update_idletasks()
+                self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model,self.find_text_model_kr, cv2.imread(img,0), self.font, translate_from_dir.get_bboxes(cv2.imread(img,0),self.find_text_model_jp,0.01),self.internet_connection, self.default_lang_val))
+                # self.list_result_image.append(translate_from_dir.get_translate_data(self.read_text_model, cv2.imread(img,0),""))
+                
                 k += 1
             progressbar.stop()
             top_lv.destroy()
