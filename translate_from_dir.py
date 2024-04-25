@@ -153,7 +153,6 @@ def get_translate_data(model, model_kr, img,font, bboxes, internet_conection = '
     conf_cn = 0
     lang_detect = 'jp'
     for i in bboxes:
-            print(i[2],i[3], i[0],i[1])
             custom_config = r'-l jpn+kor+chi_tra+chi_sim --psm 6'
             text = pytesseract.image_to_string(preprocess(img[i[2]:i[3], i[0]:i[1]]),config=custom_config).replace('\n','').replace(' ','')
             if text:
