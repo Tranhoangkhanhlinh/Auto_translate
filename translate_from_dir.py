@@ -5,14 +5,25 @@ import cv2
 # from googletrans import Translator
 # translator = Translator(service_urls=['translate.google.com'])
 import pytesseract
-pytesseract.pytesseract.tesseract_cmd = r"lib\pytesseract\tesseract.exe"
 from deep_translator import GoogleTranslator
 import numpy as np
 import re
 from lib.manga_ocr import MangaOcr
 import langid
 import os
+import sys
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+pytesseract.pytesseract.tesseract_cmd = resource_path(r"lib\pytesseract\tesseract.exe")
 
 def sharpen(image):
     return np.array(ImageEnhance.Sharpness(Image.fromarray(image)).enhance(5.0))

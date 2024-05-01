@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-
+import unidic_lite
 import jaconv
 import torch
 from PIL import Image

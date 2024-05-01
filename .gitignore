@@ -6,3 +6,4 @@ lib/pytesseract/tessdata
 lib/pytesseract/Tesseract-OCR
 lib/manga_ocr/__pycache__
 __pycache__
+output
